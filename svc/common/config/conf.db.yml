@@ -1,0 +1,25 @@
+#host: 127.0.0.1
+#port: 3306
+#username: root
+#password: root
+#schema: mdm
+
+dbserver:
+  host: 10.10.6.90
+  port: 3306
+  username: root
+  password: root
+  schema: mdm
+
+redisserver:
+  host: 127.0.0.1
+  port: 6379
+  password:
+  db: 1
+
+mongodb:
+  host: 10.10.6.90
+  port: 27017
+  username: user
+  password: 123456
+  database: weight
