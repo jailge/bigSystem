@@ -52,6 +52,16 @@ func (m metricsMiddlewareServer) AddNewRecord(ctx context.Context, in NewRecord)
 	return
 }
 
+func (m metricsMiddlewareServer) SearchWeightWithMaterialCode(ctx context.Context, in MaterialCode) (out WeightMaterialCodeAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "SearchWeightWithMaterialCode"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.SearchWeightWithMaterialCode(ctx, in)
+	return
+}
+
 func NewMetricsMiddlewareServer(counter metrics.Counter, histogram metrics.Histogram) NewMiddlewareServer {
 	return func(service Service) Service {
 		return metricsMiddlewareServer{

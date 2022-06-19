@@ -67,6 +67,19 @@ func (l logMiddlewareServer) GetParameter(ctx context.Context) (out AllParameter
 	return
 }
 
+func (l logMiddlewareServer) SearchWeightWithMaterialCode(ctx context.Context, in MaterialCode) (out WeightMaterialCodeAck, err error) {
+	defer func() {
+		l.logger.Debug(
+			fmt.Sprint(ctx.Value(ContextReqUUid)),
+			zap.Any("调用 SearchWeightWithMaterialCode logMiddlewareServer", "SearchWeightWithMaterialCode"),
+			zap.Any("req", in),
+			zap.Any("res", out),
+			zap.Any("err", err))
+	}()
+	out, err = l.next.SearchWeightWithMaterialCode(ctx, in)
+	return
+}
+
 func NewLogMiddlewareServer(log *zap.Logger) NewMiddlewareServer {
 	return func(service Service) Service {
 		return logMiddlewareServer{

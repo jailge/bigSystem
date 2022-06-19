@@ -12,6 +12,7 @@ import (
 	httptransport "github.com/go-kit/kit/transport/http"
 	handlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 	"net/http"
@@ -20,12 +21,17 @@ import (
 var (
 	// ErrBadRouting is returned when an expected path variable is missing.
 	// It always indicates programmer error.
-	ErrBadRouting = errors.New("inconsistent mapping between route and handler (programmer error)")
+	ErrorBadRouting = errors.New("inconsistent mapping between route and handler (programmer error)")
+	ErrorBadRequest = errors.New("invalid request parameter")
 )
 
 func MakeHTTPHandler(endpoint Endpoint.EndpointsServer, log *zap.Logger) http.Handler {
 	r := mux.NewRouter()
 	//e := Endpoint.MakeServerEndpoints(s, log)
+	//r.Use(mux.CORSMethodMiddleware(r))
+	//r.Headers("Content-Type", "application/json",
+	//	"X-Requested-With", "XMLHttpRequest", "Access-Control-Allow-Origin")
+
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorEncoder(encodeError),
 		httptransport.ServerBefore(func(ctx context.Context, request *http.Request) context.Context {
@@ -76,8 +82,34 @@ func MakeHTTPHandler(endpoint Endpoint.EndpointsServer, log *zap.Logger) http.Ha
 				options...,
 			),
 		))
+	r.Methods("POST").Path("/weight/material_code").Handler(
+		handlers.CORS(handlers.AllowedMethods([]string{"POST"}), handlers.AllowedOrigins([]string{"*"}), handlers.AllowedHeaders([]string{"*"}))(
+			httptransport.NewServer(
+				endpoint.SearchWeightWithMaterialCodeEndpoint,
+				decodeHTTPSearchWeightWithMaterialCodeRequest,
+				encodeHTTPGenericResponse,
+				options...,
+			),
+		))
 
-	return r
+	r.Use(mux.CORSMethodMiddleware(r))
+	c := cors.New(cors.Options{
+		AllowedOrigins:         []string{"http://10.10.181.60:5500", "http://gm.he.link", "http://10.10.181.111"},
+		AllowOriginFunc:        nil,
+		AllowOriginRequestFunc: nil,
+		AllowedMethods:         []string{"POST"},
+		AllowedHeaders:         []string{"Content-Type", "application/json"},
+		ExposedHeaders:         nil,
+		MaxAge:                 0,
+		AllowCredentials:       false,
+		OptionsPassthrough:     false,
+		OptionsSuccessStatus:   0,
+		Debug:                  false,
+	})
+	cors.Default()
+	h := c.Handler(r)
+
+	return h
 }
 
 func decodeHTTPGetAllWeightRecordRequest(ctx context.Context, r *http.Request) (interface{}, error) {
@@ -116,13 +148,34 @@ func decodeHTTPAddNewRecordRequest(ctx context.Context, r *http.Request) (interf
 	return in, nil
 }
 
+func decodeHTTPSearchWeightWithMaterialCodeRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	var in Service.MaterialCode
+	//vars := mux.Vars(r)
+	//in, err := vars["material_code"]
+	//fmt.Printf(in)
+	//if err {
+	//	return nil, ErrorBadRequest
+	//}
+	fmt.Printf("%s\n", r.Header)
+	fmt.Println("**********")
+	//fmt.Printf("%s\n", r.Body)
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		return nil, err
+	}
+	fmt.Println(in)
+	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", in))
+	return in, nil
+}
+
 func encodeHTTPGenericResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any("请求结束封装返回值", response))
 	if f, ok := response.(endpoint.Failer); ok && f.Failed() != nil {
 		encodeError(ctx, f.Failed(), w)
 		return nil
 	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	w.Header().Set("Content-Type", "application/json")
+	//w.Header().Set("Access-Control-Allow-Origin", "*")
 	return json.NewEncoder(w).Encode(response)
 }
 
@@ -130,7 +183,8 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 	if err == nil {
 		panic("encodeError with nil error")
 	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	//w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(codeFrom(err))
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": false,
@@ -140,10 +194,10 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 }
 
 func codeFrom(err error) int {
-	switch err {
-	case Service.ErrNotFound:
+	switch err.Error() {
+	case Service.ErrNotFound.Error():
 		return http.StatusNotFound
-	case Service.ErrAlreadyExists, Service.ErrInconsistentIDs:
+	case Service.ErrAlreadyExists.Error(), Service.ErrInconsistentIDs.Error():
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError

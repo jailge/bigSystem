@@ -27,6 +27,7 @@ type Service interface {
 	GetWeightRecordPage(ctx context.Context, page Page) (ack AllDocumentsPageAck, err error)
 	GetParameter(ctx context.Context) (ack AllParameterAck, err error)
 	AddNewRecord(ctx context.Context, newRecord NewRecord) (ack NewRecordAck, err error)
+	SearchWeightWithMaterialCode(ctx context.Context, materialCode MaterialCode) (ack WeightMaterialCodeAck, err error)
 }
 
 type baseServer struct {
@@ -37,7 +38,7 @@ type baseServer struct {
 var (
 	ErrInconsistentIDs = errors.New("inconsistent IDs")
 	ErrAlreadyExists   = errors.New("already exists")
-	ErrNotFound        = errors.New("not found")
+	ErrNotFound        = errors.New("mongo: no documents in result")
 )
 
 // NewService func NewService(mdb *mongodb.MdbService, log *zap.Logger) Service {
@@ -373,10 +374,48 @@ func (s baseServer) AddNewRecord(ctx context.Context, newRecord NewRecord) (ack 
 		}, nil
 	} else {
 		// 如果查询错误
-		fmt.Println(err)
+		//fmt.Println(err)
 		return NewRecordAck{}, err
 	}
 	//fmt.Println(existsRecord)
 	//return
 
+}
+
+func (s baseServer) SearchWeightWithMaterialCode(ctx context.Context, materialCode MaterialCode) (ack WeightMaterialCodeAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "SearchWeightWithMaterialCode 处理请求"))
+
+	//查询是否存在material_code
+	var existsRecord entity.WeightRecord
+	err = mongodb.NewMgo(collectionRecord).FindOne("material_code", materialCode.MaterialCode).Decode(&existsRecord)
+
+	//判断是否存在记录
+	if err == nil {
+		for _, value := range existsRecord.FlowProcess {
+			if value.WeighStage == "物料首称" {
+				return WeightMaterialCodeAck{
+					Status:  true,
+					Res:     value.RecordLog[len(value.RecordLog)-1].CalWeight,
+					ErrInfo: "",
+				}, err
+			}
+		}
+		return WeightMaterialCodeAck{
+			Status:  false,
+			Res:     0,
+			ErrInfo: "",
+		}, err
+
+	} else if err.Error() == "mongo: no documents in result" {
+		err = errors.New("no document")
+		return WeightMaterialCodeAck{
+			Status:  false,
+			Res:     0,
+			ErrInfo: "",
+		}, err
+	} else {
+		// 如果查询错误
+		//fmt.Println(err)
+		return WeightMaterialCodeAck{}, err
+	}
 }

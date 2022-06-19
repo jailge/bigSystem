@@ -92,3 +92,13 @@ type NewRecordAck struct {
 type UpdateFlowRecord struct {
 	FlowProcess []entity.FlowProcessStage `bson:"flow_process"`
 }
+
+type MaterialCode struct {
+	MaterialCode string `json:"material_code" form:"material_code" binding:"required"`
+}
+
+type WeightMaterialCodeAck struct {
+	Status  bool    `json:"status"`
+	Res     float64 `json:"res"`
+	ErrInfo string  `json:"err_info"`
+}

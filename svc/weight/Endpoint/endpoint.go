@@ -11,10 +11,11 @@ import (
 )
 
 type EndpointsServer struct {
-	GetAllWeightRecordEndpoint  endpoint.Endpoint
-	GetWeightRecordPageEndpoint endpoint.Endpoint
-	GetParameterEndpoint        endpoint.Endpoint
-	AddNewRecordEndpoint        endpoint.Endpoint
+	GetAllWeightRecordEndpoint           endpoint.Endpoint
+	GetWeightRecordPageEndpoint          endpoint.Endpoint
+	GetParameterEndpoint                 endpoint.Endpoint
+	AddNewRecordEndpoint                 endpoint.Endpoint
+	SearchWeightWithMaterialCodeEndpoint endpoint.Endpoint
 }
 
 func MakeServerEndpoints(s Service.Service, log *zap.Logger, limit *rate.Limiter, limiter ratelimit.Limiter) EndpointsServer {
@@ -54,12 +55,22 @@ func MakeServerEndpoints(s Service.Service, log *zap.Logger, limit *rate.Limiter
 		// 需要限流的方法添加限流中间件JWT
 		addNewRecordEndpoint = NewUberRateMiddleware(limiter)(addNewRecordEndpoint)
 	}
+	var searchWeightWithMaterialCodeEndpoint endpoint.Endpoint
+	{
+		searchWeightWithMaterialCodeEndpoint = MakeSearchWeightWithMaterialCodeEndpoint(s)
+		searchWeightWithMaterialCodeEndpoint = LoggingMiddleware(log)(searchWeightWithMaterialCodeEndpoint)
+		// 需要鉴权的方法添加jwt鉴权中间件
+		//addNewRecordEndpoint = AuthMiddleware(log)(addNewRecordEndpoint)
+		// 需要限流的方法添加限流中间件JWT
+		searchWeightWithMaterialCodeEndpoint = NewUberRateMiddleware(limiter)(searchWeightWithMaterialCodeEndpoint)
+	}
 
 	return EndpointsServer{
-		GetAllWeightRecordEndpoint:  getAllWeightRecordEndpoint,
-		GetWeightRecordPageEndpoint: getWeightRecordPageEndpoint,
-		GetParameterEndpoint:        getParameterEndpoint,
-		AddNewRecordEndpoint:        addNewRecordEndpoint,
+		GetAllWeightRecordEndpoint:           getAllWeightRecordEndpoint,
+		GetWeightRecordPageEndpoint:          getWeightRecordPageEndpoint,
+		GetParameterEndpoint:                 getParameterEndpoint,
+		AddNewRecordEndpoint:                 addNewRecordEndpoint,
+		SearchWeightWithMaterialCodeEndpoint: searchWeightWithMaterialCodeEndpoint,
 	}
 }
 
@@ -135,5 +146,12 @@ func MakeAddNewRecordEndpoint(s Service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(Service.NewRecord)
 		return s.AddNewRecord(ctx, req)
+	}
+}
+
+func MakeSearchWeightWithMaterialCodeEndpoint(s Service.Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(Service.MaterialCode)
+		return s.SearchWeightWithMaterialCode(ctx, req)
 	}
 }

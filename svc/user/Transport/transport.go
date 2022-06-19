@@ -217,14 +217,17 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 }
 
 func codeFrom(err error) int {
-	switch err {
-	case Service.ErrUserLogin:
-		return http.StatusBadRequest
-	case Service.ErrNotFound:
+	switch err.Error() {
+	case Service.ErrUserLogin.Error():
+		return http.StatusOK
+	case Service.ErrNotFound.Error():
 		return http.StatusNotFound
-	case Service.ErrAlreadyExists, Service.ErrInconsistentIDs:
+	case Service.ErrAlreadyExists.Error(), Service.ErrInconsistentIDs.Error():
 		return http.StatusBadRequest
 	default:
+		//if err.Error() == Service.ErrUserLogin.Error() {
+		//	fmt.Println(err)
+		//}
 		return http.StatusInternalServerError
 	}
 }
