@@ -8,14 +8,19 @@ import (
 	"fmt"
 	"github.com/go-kit/kit/metrics"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	//"go-mdm-service/utils/async"
 	"go.uber.org/zap"
 )
 
 const (
-	collectionRecord    = "record"
-	collectionParameter = "parameter"
+	collectionRecord         = "record"
+	collectionParameter      = "parameter"
+	collectionCraft          = "craft"
+	collectionTexture        = "texture"
+	collectionProcess        = "process"
+	collectionPurchaseStatus = "purchase_status"
 )
 
 type Service interface {
@@ -28,6 +33,23 @@ type Service interface {
 	GetParameter(ctx context.Context) (ack AllParameterAck, err error)
 	AddNewRecord(ctx context.Context, newRecord NewRecord) (ack NewRecordAck, err error)
 	SearchWeightWithMaterialCode(ctx context.Context, materialCode MaterialCode) (ack WeightMaterialCodeAck, err error)
+
+	GetAllCraft(ctx context.Context) (ack AllCraftAck, err error)
+	GetAllTexture(ctx context.Context) (ack AllTextureAck, err error)
+	GetAllProcess(ctx context.Context) (ack AllProcessAck, err error)
+	GetAllPurchaseStatus(ctx context.Context) (ack AllPurchaseStatusAck, err error)
+	AddCraft(ctx context.Context, craft Craft) (ack NewParameterAck, err error)
+	AddTexture(ctx context.Context, texture Texture) (ack NewParameterAck, err error)
+	AddProcess(ctx context.Context, process Process) (ack NewParameterAck, err error)
+	AddPurchaseStatus(ctx context.Context, ps PurchaseStatus) (ack NewParameterAck, err error)
+	DeleteCraftWithId(ctx context.Context, craftId string) (ack NewParameterAck, err error)
+	DeleteTextureWithId(ctx context.Context, textureId string) (ack NewParameterAck, err error)
+	DeleteProcessWithId(ctx context.Context, processId string) (ack NewParameterAck, err error)
+	DeletePurchaseStatusWithId(ctx context.Context, psId string) (ack NewParameterAck, err error)
+	UpdateCraft(ctx context.Context, id string, craft Craft) (ack NewParameterAck, err error)
+	UpdateTexture(ctx context.Context, id string, texture Texture) (ack NewParameterAck, err error)
+	UpdateProcess(ctx context.Context, id string, process Process) (ack NewParameterAck, err error)
+	UpdatePurchaseStatus(ctx context.Context, id string, ps PurchaseStatus) (ack NewParameterAck, err error)
 }
 
 type baseServer struct {
@@ -38,7 +60,9 @@ type baseServer struct {
 var (
 	ErrInconsistentIDs = errors.New("inconsistent IDs")
 	ErrAlreadyExists   = errors.New("already exists")
-	ErrNotFound        = errors.New("mongo: no documents in result")
+	ErrNotFound        = errors.New("no document")
+	NoErr              = errors.New("no errors")
+	NoDocument         = errors.New("mongo: no documents in result")
 )
 
 // NewService func NewService(mdb *mongodb.MdbService, log *zap.Logger) Service {
@@ -309,7 +333,7 @@ func (s baseServer) AddNewRecord(ctx context.Context, newRecord NewRecord) (ack 
 				break
 			}
 		}
-		fmt.Println(same)
+		//fmt.Println(same)
 		if same == false {
 			existsRecord.FlowProcess = append(existsRecord.FlowProcess, entity.FlowProcessStage{
 				WeighStage: newRecord.WeighStage,
@@ -335,13 +359,13 @@ func (s baseServer) AddNewRecord(ctx context.Context, newRecord NewRecord) (ack 
 		updateResult := mongodb.NewMgo(collectionRecord).UpdateMany("material_code", existsRecord.MaterialCode, m)
 		//fmt.Println("########", updateResult)
 
-		return NewRecordAck{
+		ack = NewRecordAck{
 			Status:  true,
 			Res:     fmt.Sprintf("MatchedCount:%d,  UpsertedCount:%d, ModifiedCount:%d", updateResult.MatchedCount, updateResult.UpsertedCount, updateResult.ModifiedCount),
 			ErrInfo: "",
-		}, nil
+		}
 
-	} else if err.Error() == "mongo: no documents in result" {
+	} else if err.Error() == NoDocument.Error() {
 		//如果不存在就新增
 		record := entity.Record{
 			CalPerson: newRecord.CalPerson,
@@ -367,19 +391,20 @@ func (s baseServer) AddNewRecord(ctx context.Context, newRecord NewRecord) (ack 
 		}
 		insertOneResult := mongodb.NewMgo(collectionRecord).InsertOne(weightRecord)
 		//fmt.Println(insertOneResult)
-		return NewRecordAck{
+		ack = NewRecordAck{
 			Status:  true,
 			Res:     fmt.Sprintf("%s", insertOneResult.InsertedID),
 			ErrInfo: "",
-		}, nil
+		}
 	} else {
 		// 如果查询错误
 		//fmt.Println(err)
-		return NewRecordAck{}, err
+		ack = NewRecordAck{}
 	}
 	//fmt.Println(existsRecord)
 	//return
-
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "AddNewRecord 处理请求"), zap.Any("处理返回值", ack))
+	return
 }
 
 func (s baseServer) SearchWeightWithMaterialCode(ctx context.Context, materialCode MaterialCode) (ack WeightMaterialCodeAck, err error) {
@@ -400,22 +425,605 @@ func (s baseServer) SearchWeightWithMaterialCode(ctx context.Context, materialCo
 				}, err
 			}
 		}
-		return WeightMaterialCodeAck{
+		ack = WeightMaterialCodeAck{
 			Status:  false,
 			Res:     0,
 			ErrInfo: "",
-		}, err
+		}
 
-	} else if err.Error() == "mongo: no documents in result" {
+	} else if err.Error() == NoDocument.Error() {
 		err = errors.New("no document")
-		return WeightMaterialCodeAck{
+		ack = WeightMaterialCodeAck{
 			Status:  false,
 			Res:     0,
 			ErrInfo: "",
-		}, err
+		}
 	} else {
 		// 如果查询错误
 		//fmt.Println(err)
-		return WeightMaterialCodeAck{}, err
+		ack = WeightMaterialCodeAck{}
 	}
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "SearchWeightWithMaterialCode 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// ****************************************************
+// ****************************************************
+// 参数维护
+// ****************************************************
+// ****************************************************
+
+// GetAllCraft 所有工艺
+func (s baseServer) GetAllCraft(ctx context.Context) (ack AllCraftAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "GetAllCraft 处理请求"))
+
+	var results []entity.Craft
+
+	// 查询总数
+	_, size := mongodb.NewMgo(collectionCraft).Count()
+	//fmt.Printf(" documents name: %+v documents size %d \n", name, size)
+	cur := mongodb.NewMgo(collectionCraft).FindAll(0, size, 1)
+
+	defer cur.Close(context.TODO())
+	if cur != nil {
+		fmt.Println("FindAll :", cur)
+		//err = errors.New("FindAll err")
+	}
+	for cur.Next(context.TODO()) {
+		var elem entity.Craft
+		err := cur.Decode(&elem)
+		if err != nil {
+			//err = errors.New("FindAll err")
+			log.Fatal(err)
+		}
+		results = append(results, elem)
+	}
+	if err := cur.Err(); err != nil {
+		//log.Fatal(err)
+		return AllCraftAck{
+			Status:  false,
+			Res:     results,
+			ErrInfo: err.Error(),
+		}, err
+	}
+	ack = AllCraftAck{
+		Status:  true,
+		Res:     results,
+		ErrInfo: "",
+	}
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "GetAllCraft 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// AddCraft 新增工艺
+func (s baseServer) AddCraft(ctx context.Context, craft Craft) (ack NewParameterAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "AddCraft 处理请求"))
+
+	//查询是否存在craft
+	var existCraft entity.Craft
+	err = mongodb.NewMgo(collectionCraft).FindOne("name", craft.Name).Decode(&existCraft)
+	fmt.Println(err)
+	//判断是否存在记录
+	if err == nil {
+		// 已存在
+		ack = NewParameterAck{
+			Status:  false,
+			Res:     fmt.Sprintf("工艺已存在：%s", craft.Name),
+			ErrInfo: "",
+		}
+	} else if err.Error() == NoDocument.Error() {
+		// 不存在，可以新增
+		//err = errors.New("no errors")
+		insertOneResult := mongodb.NewMgo(collectionCraft).InsertOne(craft)
+		fmt.Println(insertOneResult)
+		ack = NewParameterAck{
+			Status:  true,
+			Res:     fmt.Sprintf("%s", insertOneResult.InsertedID),
+			ErrInfo: "",
+		}
+	} else {
+		// 如果查询错误
+		//fmt.Println(err)
+		ack = NewParameterAck{}
+	}
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "AddCraft 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// DeleteCraftWithId 删除工艺
+func (s baseServer) DeleteCraftWithId(ctx context.Context, craftId string) (ack NewParameterAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "DeleteCraftWithId 处理请求"))
+
+	objId, _ := primitive.ObjectIDFromHex(craftId)
+	//查询是否存在craft
+	var existCraft entity.Craft
+	err = mongodb.NewMgo(collectionCraft).FindOne("_id", objId).Decode(&existCraft)
+	//fmt.Println(craftId)
+	fmt.Println(err)
+	//判断是否存在记录
+	if err == nil {
+		// 已存在，可删除
+		deleteResult := mongodb.NewMgo(collectionCraft).Delete("_id", objId)
+		ack = NewParameterAck{
+			Status:  true,
+			Res:     fmt.Sprintf("工艺已删除：%d", deleteResult),
+			ErrInfo: "",
+		}
+	} else {
+		// 如果查询错误
+		//fmt.Println(err)
+		ack = NewParameterAck{}
+	}
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "DeleteCraftWithId 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// UpdateCraft 更新工艺
+func (s baseServer) UpdateCraft(ctx context.Context, id string, craft Craft) (ack NewParameterAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "UpdateCraft 处理请求"))
+
+	objId, _ := primitive.ObjectIDFromHex(id)
+
+	//查询是否存在craft
+	var existCraft entity.Craft
+	err = mongodb.NewMgo(collectionCraft).FindOne("_id", objId).Decode(&existCraft)
+
+	//判断是否存在记录
+	if err == nil {
+		// 已存在,可更新
+		update := bson.D{
+			{
+				"$set", bson.D{
+					{"name", craft.Name},
+				}},
+		}
+		updateResult := mongodb.NewMgo(collectionCraft).UpdateOne("_id", objId, update)
+		ack = NewParameterAck{
+			Status:  true,
+			Res:     fmt.Sprintf("Matched %d documents and updated %d documents.", updateResult.MatchedCount, updateResult.ModifiedCount),
+			ErrInfo: "",
+		}
+	} else if err.Error() == NoDocument.Error() {
+		// 不存在，可以新增
+		//err = errors.New("no errors")
+		err = errors.New("no document")
+		ack = NewParameterAck{}
+	} else {
+		// 如果查询错误
+		//fmt.Println(err)
+		ack = NewParameterAck{}
+	}
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "UpdateCraft 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// GetAllTexture 所有材质
+func (s baseServer) GetAllTexture(ctx context.Context) (ack AllTextureAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "GetAllTexture 处理请求"))
+
+	var results []entity.Texture
+
+	// 查询总数
+	_, size := mongodb.NewMgo(collectionTexture).Count()
+	//fmt.Printf(" documents name: %+v documents size %d \n", name, size)
+	cur := mongodb.NewMgo(collectionTexture).FindAll(0, size, 1)
+
+	defer cur.Close(context.TODO())
+	if cur != nil {
+		fmt.Println("FindAll :", cur)
+		//err = errors.New("FindAll err")
+	}
+	for cur.Next(context.TODO()) {
+		var elem entity.Texture
+		err := cur.Decode(&elem)
+		if err != nil {
+			//err = errors.New("FindAll err")
+			log.Fatal(err)
+		}
+		results = append(results, elem)
+	}
+	if err := cur.Err(); err != nil {
+		//log.Fatal(err)
+		return AllTextureAck{
+			Status:  false,
+			Res:     results,
+			ErrInfo: err.Error(),
+		}, err
+	}
+	ack = AllTextureAck{
+		Status:  true,
+		Res:     results,
+		ErrInfo: "",
+	}
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "GetAllTexture 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// AddTexture 新增材质
+func (s baseServer) AddTexture(ctx context.Context, texture Texture) (ack NewParameterAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "AddTexture 处理请求"))
+
+	//查询是否存在texture
+	var existTexture entity.Texture
+	err = mongodb.NewMgo(collectionTexture).FindOne("name", texture.Name).Decode(&existTexture)
+	//fmt.Println(err)
+	//判断是否存在记录
+	if err == nil {
+		// 已存在
+		ack = NewParameterAck{
+			Status:  false,
+			Res:     fmt.Sprintf("材质已存在：%s", texture.Name),
+			ErrInfo: "",
+		}
+	} else if err.Error() == NoDocument.Error() {
+		// 不存在，可以新增
+		//err = errors.New("no errors")
+		insertOneResult := mongodb.NewMgo(collectionTexture).InsertOne(texture)
+		fmt.Println(insertOneResult)
+		ack = NewParameterAck{
+			Status:  true,
+			Res:     fmt.Sprintf("%s", insertOneResult.InsertedID),
+			ErrInfo: "",
+		}
+	} else {
+		// 如果查询错误
+		//fmt.Println(err)
+		ack = NewParameterAck{}
+	}
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "AddTexture 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// DeleteTextureWithId 删除材质
+func (s baseServer) DeleteTextureWithId(ctx context.Context, textureId string) (ack NewParameterAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "DeleteTextureWithId 处理请求"))
+
+	objId, _ := primitive.ObjectIDFromHex(textureId)
+	//查询是否存在texture
+	var existTexture entity.Texture
+	err = mongodb.NewMgo(collectionTexture).FindOne("_id", objId).Decode(&existTexture)
+	//fmt.Println(craftId)
+	fmt.Println(err)
+	//判断是否存在记录
+	if err == nil {
+		// 已存在，可删除
+		deleteResult := mongodb.NewMgo(collectionTexture).Delete("_id", objId)
+		ack = NewParameterAck{
+			Status:  true,
+			Res:     fmt.Sprintf("材质已删除：%d", deleteResult),
+			ErrInfo: "",
+		}
+	} else {
+		// 如果查询错误
+		//fmt.Println(err)
+		ack = NewParameterAck{}
+	}
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "DeleteTextureWithId 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// UpdateTexture 更新材质
+func (s baseServer) UpdateTexture(ctx context.Context, id string, texture Texture) (ack NewParameterAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "UpdateTexture 处理请求"))
+
+	objId, _ := primitive.ObjectIDFromHex(id)
+
+	//查询是否存在texture
+	var exist entity.Texture
+	err = mongodb.NewMgo(collectionTexture).FindOne("_id", objId).Decode(&exist)
+	//判断是否存在记录
+	if err == nil {
+		// 已存在,可更新
+		update := bson.D{
+			{
+				"$set", bson.D{
+					{"name", texture.Name},
+				}},
+		}
+		updateResult := mongodb.NewMgo(collectionTexture).UpdateOne("_id", objId, update)
+		ack = NewParameterAck{
+			Status:  true,
+			Res:     fmt.Sprintf("Matched %d documents and updated %d documents.", updateResult.MatchedCount, updateResult.ModifiedCount),
+			ErrInfo: "",
+		}
+	} else if err.Error() == NoDocument.Error() {
+		// 不存在，可以新增
+		//err = errors.New("no errors")
+		err = errors.New("no document")
+		ack = NewParameterAck{}
+	} else {
+		// 如果查询错误
+		//fmt.Println(err)
+		ack = NewParameterAck{}
+	}
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "UpdateTexture 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// GetAllProcess 所有工序
+func (s baseServer) GetAllProcess(ctx context.Context) (ack AllProcessAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "GetAllProcess 处理请求"))
+
+	var results []entity.Process
+
+	// 查询总数
+	_, size := mongodb.NewMgo(collectionProcess).Count()
+	//fmt.Printf(" documents name: %+v documents size %d \n", name, size)
+	cur := mongodb.NewMgo(collectionProcess).FindAll(0, size, 1)
+
+	defer cur.Close(context.TODO())
+	if cur != nil {
+		fmt.Println("FindAll :", cur)
+		//err = errors.New("FindAll err")
+	}
+	for cur.Next(context.TODO()) {
+		var elem entity.Process
+		err := cur.Decode(&elem)
+		if err != nil {
+			//err = errors.New("FindAll err")
+			log.Fatal(err)
+		}
+		results = append(results, elem)
+	}
+	if err := cur.Err(); err != nil {
+		//log.Fatal(err)
+		return AllProcessAck{
+			Status:  false,
+			Res:     results,
+			ErrInfo: err.Error(),
+		}, err
+	}
+	ack = AllProcessAck{
+		Status:  true,
+		Res:     results,
+		ErrInfo: "",
+	}
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "GetAllProcess 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// AddProcess 新增工序
+func (s baseServer) AddProcess(ctx context.Context, process Process) (ack NewParameterAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "AddProcess 处理请求"))
+
+	//查询是否存在process
+	var existProcess entity.Process
+	err = mongodb.NewMgo(collectionProcess).FindOne("name", process.Name).Decode(&existProcess)
+	//fmt.Println(err)
+	//判断是否存在记录
+	if err == nil {
+		// 已存在
+		ack = NewParameterAck{
+			Status:  false,
+			Res:     fmt.Sprintf("工序已存在：%s", process.Name),
+			ErrInfo: "",
+		}
+	} else if err.Error() == NoDocument.Error() {
+		// 不存在，可以新增
+		//err = errors.New("no errors")
+		insertOneResult := mongodb.NewMgo(collectionProcess).InsertOne(process)
+		fmt.Println(insertOneResult)
+		ack = NewParameterAck{
+			Status:  true,
+			Res:     fmt.Sprintf("%s", insertOneResult.InsertedID),
+			ErrInfo: "",
+		}
+	} else {
+		// 如果查询错误
+		//fmt.Println(err)
+		ack = NewParameterAck{}
+	}
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "AddProcess 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// DeleteProcessWithId 删除工序
+func (s baseServer) DeleteProcessWithId(ctx context.Context, processId string) (ack NewParameterAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "DeleteProcessWithId 处理请求"))
+
+	objId, _ := primitive.ObjectIDFromHex(processId)
+	//查询是否存在Process
+	var existProcess entity.Process
+	err = mongodb.NewMgo(collectionProcess).FindOne("_id", objId).Decode(&existProcess)
+	//fmt.Println(craftId)
+	fmt.Println(err)
+	//判断是否存在记录
+	if err == nil {
+		// 已存在，可删除
+		deleteResult := mongodb.NewMgo(collectionProcess).Delete("_id", objId)
+		ack = NewParameterAck{
+			Status:  true,
+			Res:     fmt.Sprintf("工序已删除：%d", deleteResult),
+			ErrInfo: "",
+		}
+	} else {
+		// 如果查询错误
+		//fmt.Println(err)
+		ack = NewParameterAck{}
+	}
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "DeleteProcessWithId 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// UpdateProcess 更新材质
+func (s baseServer) UpdateProcess(ctx context.Context, id string, process Process) (ack NewParameterAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "UpdateProcess 处理请求"))
+
+	objId, _ := primitive.ObjectIDFromHex(id)
+
+	//查询是否存在texture
+	var exist entity.Process
+	err = mongodb.NewMgo(collectionProcess).FindOne("_id", objId).Decode(&exist)
+	//判断是否存在记录
+	if err == nil {
+		// 已存在,可更新
+		update := bson.D{
+			{
+				"$set", bson.D{
+					{"name", process.Name},
+				}},
+		}
+		updateResult := mongodb.NewMgo(collectionProcess).UpdateOne("_id", objId, update)
+		ack = NewParameterAck{
+			Status:  true,
+			Res:     fmt.Sprintf("Matched %d documents and updated %d documents.", updateResult.MatchedCount, updateResult.ModifiedCount),
+			ErrInfo: "",
+		}
+	} else if err.Error() == NoDocument.Error() {
+		// 不存在，可以新增
+		//err = errors.New("no errors")
+		err = errors.New("no document")
+		ack = NewParameterAck{}
+	} else {
+		// 如果查询错误
+		//fmt.Println(err)
+		ack = NewParameterAck{}
+	}
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "UpdateProcess 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// GetAllPurchaseStatus 所有采购状态
+func (s baseServer) GetAllPurchaseStatus(ctx context.Context) (ack AllPurchaseStatusAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "GetAllPurchaseStatus 处理请求"))
+
+	var results []entity.PurchaseStatus
+
+	// 查询总数
+	_, size := mongodb.NewMgo(collectionPurchaseStatus).Count()
+	//fmt.Printf(" documents name: %+v documents size %d \n", name, size)
+	cur := mongodb.NewMgo(collectionPurchaseStatus).FindAll(0, size, 1)
+
+	defer cur.Close(context.TODO())
+	if cur != nil {
+		fmt.Println("FindAll :", cur)
+		//err = errors.New("FindAll err")
+	}
+	for cur.Next(context.TODO()) {
+		var elem entity.PurchaseStatus
+		err := cur.Decode(&elem)
+		if err != nil {
+			//err = errors.New("FindAll err")
+			log.Fatal(err)
+		}
+		results = append(results, elem)
+	}
+	if err := cur.Err(); err != nil {
+		//log.Fatal(err)
+		ack = AllPurchaseStatusAck{
+			Status:  false,
+			Res:     results,
+			ErrInfo: err.Error(),
+		}
+	} else {
+		ack = AllPurchaseStatusAck{
+			Status:  true,
+			Res:     results,
+			ErrInfo: "",
+		}
+	}
+
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "GetAllPurchaseStatus 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// AddPurchaseStatus 新增采购状态
+func (s baseServer) AddPurchaseStatus(ctx context.Context, ps PurchaseStatus) (ack NewParameterAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "AddPurchaseStatus 处理请求"))
+
+	//查询是否存在purchase_status
+	var existPurchaseStatus entity.PurchaseStatus
+	err = mongodb.NewMgo(collectionPurchaseStatus).FindOne("name", ps.Name).Decode(&existPurchaseStatus)
+	//fmt.Println(err)
+	//判断是否存在记录
+	if err == nil {
+		// 已存在
+		ack = NewParameterAck{
+			Status:  false,
+			Res:     fmt.Sprintf("采购状态已存在：%s", ps.Name),
+			ErrInfo: "",
+		}
+	} else if err.Error() == NoDocument.Error() {
+		// 不存在，可以新增
+		//err = errors.New("no errors")
+		insertOneResult := mongodb.NewMgo(collectionPurchaseStatus).InsertOne(ps)
+		fmt.Println(insertOneResult)
+		ack = NewParameterAck{
+			Status:  true,
+			Res:     fmt.Sprintf("%s", insertOneResult.InsertedID),
+			ErrInfo: "",
+		}
+	} else {
+		// 如果查询错误
+		//fmt.Println(err)
+		ack = NewParameterAck{}
+	}
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "AddPurchaseStatus 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// DeletePurchaseStatusWithId 删除采购状态
+func (s baseServer) DeletePurchaseStatusWithId(ctx context.Context, psId string) (ack NewParameterAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "DeletePurchaseStatusWithId 处理请求"))
+
+	objId, _ := primitive.ObjectIDFromHex(psId)
+	//查询是否存在purchase_status
+	var existPurchaseStatus entity.PurchaseStatus
+	err = mongodb.NewMgo(collectionPurchaseStatus).FindOne("_id", objId).Decode(&existPurchaseStatus)
+
+	//判断是否存在记录
+	if err == nil {
+		// 已存在，可删除
+		deleteResult := mongodb.NewMgo(collectionPurchaseStatus).Delete("_id", objId)
+		ack = NewParameterAck{
+			Status:  true,
+			Res:     fmt.Sprintf("采购状态已删除：%d", deleteResult),
+			ErrInfo: "",
+		}
+	} else {
+		// 如果查询错误
+		//fmt.Println(err)
+		ack = NewParameterAck{}
+	}
+
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "DeletePurchaseStatusWithId 处理请求"), zap.Any("处理返回值", ack))
+	return
+}
+
+// UpdatePurchaseStatus 更新材质
+func (s baseServer) UpdatePurchaseStatus(ctx context.Context, id string, ps PurchaseStatus) (ack NewParameterAck, err error) {
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "UpdatePurchaseStatus 处理请求"))
+
+	objId, _ := primitive.ObjectIDFromHex(id)
+
+	//查询是否存在texture
+	var exist entity.PurchaseStatus
+	err = mongodb.NewMgo(collectionPurchaseStatus).FindOne("_id", objId).Decode(&exist)
+	//判断是否存在记录
+	if err == nil {
+		// 已存在,可更新
+		update := bson.D{
+			{
+				"$set", bson.D{
+					{"name", ps.Name},
+				}},
+		}
+		updateResult := mongodb.NewMgo(collectionPurchaseStatus).UpdateOne("_id", objId, update)
+		ack = NewParameterAck{
+			Status:  true,
+			Res:     fmt.Sprintf("Matched %d documents and updated %d documents.", updateResult.MatchedCount, updateResult.ModifiedCount),
+			ErrInfo: "",
+		}
+	} else if err.Error() == NoDocument.Error() {
+		// 不存在，可以新增
+		//err = errors.New("no errors")
+		err = errors.New("no document")
+		ack = NewParameterAck{}
+	} else {
+		// 如果查询错误
+		//fmt.Println(err)
+		ack = NewParameterAck{}
+	}
+	s.logger.Debug(fmt.Sprint(ctx.Value(ContextReqUUid)), zap.Any("调用 Service", "UpdatePurchaseStatus 处理请求"), zap.Any("处理返回值", ack))
+	return
 }

@@ -1,6 +1,7 @@
 package Transport
 
 import (
+	"bigSystem/svc/common/entity"
 	"bigSystem/svc/common/utils"
 	"bigSystem/svc/weight/Endpoint"
 	"bigSystem/svc/weight/Service"
@@ -92,12 +93,121 @@ func MakeHTTPHandler(endpoint Endpoint.EndpointsServer, log *zap.Logger) http.Ha
 			),
 		))
 
+	r.Methods("GET").Path("/weight/craft").Handler(
+		httptransport.NewServer(
+			endpoint.GetAllCraftEndpoint,
+			decodeHTTPNoParameterRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
+	r.Methods("POST").Path("/weight/craft").Handler(
+		httptransport.NewServer(
+			endpoint.AddCraftEndpoint,
+			decodeHTTPAddCraftRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
+	r.Methods("DELETE").Path("/weight/craft/{id}").Handler(
+		httptransport.NewServer(
+			endpoint.DeleteCraftWithIdEndpoint,
+			decodeHTTPDeleteParameterWithIdRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
+	r.Methods("PUT").Path("/weight/craft/{id}").Handler(
+		httptransport.NewServer(
+			endpoint.UpdateCraftEndpoint,
+			decodeHTTPUpdateCraftRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
+
+	r.Methods("GET").Path("/weight/texture").Handler(
+		httptransport.NewServer(
+			endpoint.GetAllTextureEndpoint,
+			decodeHTTPNoParameterRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
+	r.Methods("POST").Path("/weight/texture").Handler(
+		httptransport.NewServer(
+			endpoint.AddTextureEndpoint,
+			decodeHTTPAddTextureRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
+	r.Methods("DELETE").Path("/weight/texture/{id}").Handler(
+		httptransport.NewServer(
+			endpoint.DeleteTextureWithIdEndpoint,
+			decodeHTTPDeleteParameterWithIdRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
+
+	r.Methods("GET").Path("/weight/process").Handler(
+		httptransport.NewServer(
+			endpoint.GetAllProcessEndpoint,
+			decodeHTTPNoParameterRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
+	r.Methods("POST").Path("/weight/process").Handler(
+		httptransport.NewServer(
+			endpoint.AddProcessEndpoint,
+			decodeHTTPAddProcessRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
+	r.Methods("DELETE").Path("/weight/process/{id}").Handler(
+		httptransport.NewServer(
+			endpoint.DeleteProcessWithIdEndpoint,
+			decodeHTTPDeleteParameterWithIdRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
+
+	r.Methods("GET").Path("/weight/purchase_status").Handler(
+		httptransport.NewServer(
+			endpoint.GetAllPurchaseStatusEndpoint,
+			decodeHTTPNoParameterRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
+	r.Methods("POST").Path("/weight/purchase_status").Handler(
+		httptransport.NewServer(
+			endpoint.AddPurchaseStatusEndpoint,
+			decodeHTTPAddPurchaseStatusRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
+	r.Methods("DELETE").Path("/weight/purchase_status/{id}").Handler(
+		httptransport.NewServer(
+			endpoint.DeletePurchaseStatusWithIdEndpoint,
+			decodeHTTPDeleteParameterWithIdRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
+
 	r.Use(mux.CORSMethodMiddleware(r))
 	c := cors.New(cors.Options{
-		AllowedOrigins:         []string{"http://10.10.181.60:5500", "http://gm.he.link", "http://10.10.181.111"},
+		AllowedOrigins: []string{"http://10.10.181.60:5500", "http://gm.he.link", "http://10.10.181.111", "http://10.10.6.51"},
+		//AllowedOrigins:         []string{"*"},
 		AllowOriginFunc:        nil,
 		AllowOriginRequestFunc: nil,
-		AllowedMethods:         []string{"POST"},
+		AllowedMethods:         []string{"POST", "GET", "PUT", "DELETE"},
 		AllowedHeaders:         []string{"Content-Type", "application/json"},
 		ExposedHeaders:         nil,
 		MaxAge:                 0,
@@ -140,12 +250,109 @@ func decodeHTTPGetParameterRequest(ctx context.Context, r *http.Request) (interf
 }
 
 func decodeHTTPAddNewRecordRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	fmt.Printf("%s\n", r.Header)
+	fmt.Println("**********")
+	fmt.Printf("%s\n", r.Body)
 	var in Service.NewRecord
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		return nil, err
 	}
 	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", in))
 	return in, nil
+}
+
+// ********************************
+// 参数
+// ********************************
+
+func decodeHTTPNoParameterRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", nil))
+	return nil, nil
+}
+
+func decodeHTTPAddCraftRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	var in Service.Craft
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		return nil, err
+	}
+	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", in))
+	return in, nil
+}
+
+func decodeHTTPAddTextureRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	var in Service.Texture
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		return nil, err
+	}
+	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", in))
+	return in, nil
+}
+
+func decodeHTTPAddProcessRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	var in Service.Process
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		return nil, err
+	}
+	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", in))
+	return in, nil
+}
+
+func decodeHTTPAddPurchaseStatusRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	var in Service.PurchaseStatus
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		return nil, err
+	}
+	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", in))
+	return in, nil
+}
+
+func decodeHTTPUpdateCraftRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+	var t Service.Craft
+	id := vars["id"]
+	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
+		return nil, err
+	}
+	in := entity.Craft{
+		Id:   id,
+		Name: t.Name,
+	}
+	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", in))
+	return in, nil
+}
+
+//func decodeHTTPDeleteCraftWithIdRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+//	//var in Service.CraftId
+//	vars := mux.Vars(r)
+//	//if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+//	//	return nil, err
+//	//}
+//	id := vars["id"]
+//	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", id))
+//	return id, nil
+//}
+//
+//func decodeHTTPDeleteTextureWithIdRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+//	//var in Service.CraftId
+//	vars := mux.Vars(r)
+//	id := vars["id"]
+//	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", id))
+//	return id, nil
+//}
+//
+//func decodeHTTPDeleteProcessWithIdRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+//	//var in Service.CraftId
+//	vars := mux.Vars(r)
+//	id := vars["id"]
+//	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", id))
+//	return id, nil
+//}
+
+func decodeHTTPDeleteParameterWithIdRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", id))
+	return id, nil
 }
 
 func decodeHTTPSearchWeightWithMaterialCodeRequest(ctx context.Context, r *http.Request) (interface{}, error) {
@@ -195,8 +402,10 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 
 func codeFrom(err error) int {
 	switch err.Error() {
+	case Service.NoErr.Error():
+		return http.StatusOK
 	case Service.ErrNotFound.Error():
-		return http.StatusNotFound
+		return http.StatusOK
 	case Service.ErrAlreadyExists.Error(), Service.ErrInconsistentIDs.Error():
 		return http.StatusBadRequest
 	default:

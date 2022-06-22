@@ -33,7 +33,7 @@ import (
 
 var (
 	//fs = flag.NewFlagSet("user", flag.ExitOnError)
-	httpAddr       = flag.String("http-addr", "0.0.0.0:8177", "HTTP listen address")
+	httpAddr       = flag.String("http-addr", ":8177", "HTTP listen address")
 	prometheusAddr = flag.String("p", ":10081", "prometheus addr")
 )
 

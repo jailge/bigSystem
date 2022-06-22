@@ -12,6 +12,166 @@ type metricsMiddlewareServer struct {
 	histogram metrics.Histogram
 }
 
+func (m metricsMiddlewareServer) UpdateTexture(ctx context.Context, id string, in Texture) (out NewParameterAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "UpdateTexture"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.UpdateTexture(ctx, id, in)
+	return
+}
+
+func (m metricsMiddlewareServer) UpdateProcess(ctx context.Context, id string, in Process) (out NewParameterAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "UpdateProcess"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.UpdateProcess(ctx, id, in)
+	return
+}
+
+func (m metricsMiddlewareServer) UpdatePurchaseStatus(ctx context.Context, id string, in PurchaseStatus) (out NewParameterAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "UpdatePurchaseStatus"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.UpdatePurchaseStatus(ctx, id, in)
+	return
+}
+
+func (m metricsMiddlewareServer) UpdateCraft(ctx context.Context, id string, in Craft) (out NewParameterAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "UpdateCraft"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.UpdateCraft(ctx, id, in)
+	return
+}
+
+func (m metricsMiddlewareServer) GetAllPurchaseStatus(ctx context.Context) (out AllPurchaseStatusAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "GetAllPurchaseStatus"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.GetAllPurchaseStatus(ctx)
+	return
+}
+
+func (m metricsMiddlewareServer) GetAllTexture(ctx context.Context) (out AllTextureAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "GetAllTexture"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.GetAllTexture(ctx)
+	return
+}
+
+func (m metricsMiddlewareServer) GetAllProcess(ctx context.Context) (out AllProcessAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "GetAllProcess"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.GetAllProcess(ctx)
+	return
+}
+
+func (m metricsMiddlewareServer) GetAllCraft(ctx context.Context) (out AllCraftAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "GetAllCraft"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.GetAllCraft(ctx)
+	return
+}
+
+func (m metricsMiddlewareServer) DeletePurchaseStatusWithId(ctx context.Context, in string) (out NewParameterAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "DeletePurchaseStatusWithId"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.DeletePurchaseStatusWithId(ctx, in)
+	return
+}
+
+func (m metricsMiddlewareServer) DeleteTextureWithId(ctx context.Context, in string) (out NewParameterAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "DeleteTextureWithId"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.DeleteTextureWithId(ctx, in)
+	return
+}
+
+func (m metricsMiddlewareServer) DeleteProcessWithId(ctx context.Context, in string) (out NewParameterAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "DeleteProcessWithId"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.DeleteProcessWithId(ctx, in)
+	return
+}
+
+func (m metricsMiddlewareServer) DeleteCraftWithId(ctx context.Context, in string) (out NewParameterAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "DeleteCraftWithId"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.DeleteCraftWithId(ctx, in)
+	return
+}
+
+func (m metricsMiddlewareServer) AddPurchaseStatus(ctx context.Context, in PurchaseStatus) (out NewParameterAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "AddPurchaseStatus"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.AddPurchaseStatus(ctx, in)
+	return
+}
+
+func (m metricsMiddlewareServer) AddTexture(ctx context.Context, in Texture) (out NewParameterAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "AddTexture"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.AddTexture(ctx, in)
+	return
+}
+
+func (m metricsMiddlewareServer) AddProcess(ctx context.Context, in Process) (out NewParameterAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "AddProcess"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.AddProcess(ctx, in)
+	return
+}
+
+func (m metricsMiddlewareServer) AddCraft(ctx context.Context, in Craft) (out NewParameterAck, err error) {
+	defer func(start time.Time) {
+		method := []string{"method", "AddCraft"}
+		m.counter.With(method...).Add(1)
+		m.histogram.With(method...).Observe(time.Since(start).Seconds())
+	}(time.Now())
+	out, err = m.next.AddCraft(ctx, in)
+	return
+}
+
 func (m metricsMiddlewareServer) GetAllWeightRecord(ctx context.Context) (out AllDocumentsAck, err error) {
 	defer func(start time.Time) {
 		method := []string{"method", "GetAllWeightRecord"}

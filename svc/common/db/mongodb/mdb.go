@@ -1,6 +1,7 @@
 package mongodb
 
 import (
+	"bigSystem/svc/common/utils"
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -69,7 +70,8 @@ func Connect(uri string) *mongo.Client {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Connected to MongoDB!")
+	//fmt.Println("Connected to MongoDB!")
+	utils.GetLogger().Info("Connected to MongoDB!")
 	return client
 }
 
@@ -80,7 +82,8 @@ func Close() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Connection to MongoDB closed.")
+	utils.GetLogger().Error("Connected to MongoDB!")
+	//fmt.Println("Connection to MongoDB closed.")
 }
 
 //type MService struct {

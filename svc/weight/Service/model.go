@@ -102,3 +102,65 @@ type WeightMaterialCodeAck struct {
 	Res     float64 `json:"res"`
 	ErrInfo string  `json:"err_info"`
 }
+
+type Craft struct {
+	Name string `json:"name"`
+}
+
+type Texture struct {
+	Name string `json:"name"`
+}
+
+type Process struct {
+	Name string `json:"name"`
+}
+
+type PurchaseStatus struct {
+	Name string `json:"name"`
+}
+
+type CraftId struct {
+	Id string `json:"id"`
+}
+
+type TextureId struct {
+	Id string `json:"id"`
+}
+
+type ProcessId struct {
+	Id string `json:"id"`
+}
+
+//type PurchaseStatus struct {
+//	Name string `bson:"name"`
+//}
+
+type NewParameterAck struct {
+	Status  bool   `json:"status"`
+	Res     string `json:"res"`
+	ErrInfo string `json:"err_info"`
+}
+
+type AllCraftAck struct {
+	Status  bool           `json:"status"`
+	Res     []entity.Craft `json:"res"`
+	ErrInfo string         `json:"err_info"`
+}
+
+type AllTextureAck struct {
+	Status  bool             `json:"status"`
+	Res     []entity.Texture `json:"res"`
+	ErrInfo string           `json:"err_info"`
+}
+
+type AllProcessAck struct {
+	Status  bool             `json:"status"`
+	Res     []entity.Process `json:"res"`
+	ErrInfo string           `json:"err_info"`
+}
+
+type AllPurchaseStatusAck struct {
+	Status  bool                    `json:"status"`
+	Res     []entity.PurchaseStatus `json:"res"`
+	ErrInfo string                  `json:"err_info"`
+}
