@@ -1,7 +1,6 @@
 package Endpoint
 
 import (
-	"bigSystem/svc/common/entity"
 	"bigSystem/svc/weight/Service"
 	"context"
 	"github.com/go-kit/kit/endpoint"
@@ -241,7 +240,7 @@ func MakeServerEndpoints(s Service.Service, log *zap.Logger, limit *rate.Limiter
 		GetAllProcessEndpoint:              getAllProcessEndpoint,
 		GetAllPurchaseStatusEndpoint:       getAllPurchaseStatusEndpoint,
 		AddCraftEndpoint:                   addCraftEndpoint,
-		AddProcessEndpoint:                 addCraftEndpoint,
+		AddProcessEndpoint:                 addProcessEndpoint,
 		AddTextureEndpoint:                 addTextureEndpoint,
 		AddPurchaseStatusEndpoint:          addPurchaseStatusEndpoint,
 		DeleteCraftWithIdEndpoint:          deleteCraftWithIdEndpoint,
@@ -429,32 +428,32 @@ func MakeDeletePurchaseStatusWithIdEndpoint(s Service.Service) endpoint.Endpoint
 
 func MakeUpdateCraftEndpoint(s Service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req := request.(entity.Craft)
-		craft := Service.Craft{Name: req.Name}
+		req := request.(Service.Craft)
+		craft := Service.Craft{Name: req.Name, ClientId: req.ClientId}
 		return s.UpdateCraft(ctx, req.Id, craft)
 	}
 }
 
 func MakeUpdateTextureEndpoint(s Service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req := request.(entity.Texture)
-		texture := Service.Texture{Name: req.Name}
+		req := request.(Service.Texture)
+		texture := Service.Texture{Name: req.Name, ClientId: req.ClientId}
 		return s.UpdateTexture(ctx, req.Id, texture)
 	}
 }
 
 func MakeUpdateProcessEndpoint(s Service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req := request.(entity.Process)
-		process := Service.Process{Name: req.Name}
+		req := request.(Service.Process)
+		process := Service.Process{Name: req.Name, ClientId: req.ClientId}
 		return s.UpdateProcess(ctx, req.Id, process)
 	}
 }
 
 func MakeUpdatePurchaseStatusEndpoint(s Service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-		req := request.(entity.PurchaseStatus)
-		purchaseStatus := Service.PurchaseStatus{Name: req.Name}
+		req := request.(Service.PurchaseStatus)
+		purchaseStatus := Service.PurchaseStatus{Name: req.Name, ClientId: req.ClientId}
 		return s.UpdatePurchaseStatus(ctx, req.Id, purchaseStatus)
 	}
 }

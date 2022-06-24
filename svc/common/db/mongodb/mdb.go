@@ -23,7 +23,7 @@ type MConfig struct {
 
 type MongoDrivers struct {
 	Client *mongo.Client
-	Conf   Config
+	Conf   MConfig
 }
 
 var MgoClient *mongo.Client

@@ -1,7 +1,6 @@
 package Transport
 
 import (
-	"bigSystem/svc/common/entity"
 	"bigSystem/svc/common/utils"
 	"bigSystem/svc/weight/Endpoint"
 	"bigSystem/svc/weight/Service"
@@ -150,6 +149,14 @@ func MakeHTTPHandler(endpoint Endpoint.EndpointsServer, log *zap.Logger) http.Ha
 			options...,
 		),
 	)
+	r.Methods("PUT").Path("/weight/texture/{id}").Handler(
+		httptransport.NewServer(
+			endpoint.UpdateTextureEndpoint,
+			decodeHTTPUpdateTextureRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
 
 	r.Methods("GET").Path("/weight/process").Handler(
 		httptransport.NewServer(
@@ -175,6 +182,14 @@ func MakeHTTPHandler(endpoint Endpoint.EndpointsServer, log *zap.Logger) http.Ha
 			options...,
 		),
 	)
+	r.Methods("PUT").Path("/weight/process/{id}").Handler(
+		httptransport.NewServer(
+			endpoint.UpdateProcessEndpoint,
+			decodeHTTPUpdateProcessRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
 
 	r.Methods("GET").Path("/weight/purchase_status").Handler(
 		httptransport.NewServer(
@@ -196,6 +211,14 @@ func MakeHTTPHandler(endpoint Endpoint.EndpointsServer, log *zap.Logger) http.Ha
 		httptransport.NewServer(
 			endpoint.DeletePurchaseStatusWithIdEndpoint,
 			decodeHTTPDeleteParameterWithIdRequest,
+			encodeHTTPGenericResponse,
+			options...,
+		),
+	)
+	r.Methods("PUT").Path("/weight/purchase_status/{id}").Handler(
+		httptransport.NewServer(
+			endpoint.UpdatePurchaseStatusEndpoint,
+			decodeHTTPUpdatePurchaseStatusRequest,
 			encodeHTTPGenericResponse,
 			options...,
 		),
@@ -313,9 +336,58 @@ func decodeHTTPUpdateCraftRequest(ctx context.Context, r *http.Request) (interfa
 	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
 		return nil, err
 	}
-	in := entity.Craft{
-		Id:   id,
-		Name: t.Name,
+	in := Service.Craft{
+		Id:       id,
+		Name:     t.Name,
+		ClientId: t.ClientId,
+	}
+	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", in))
+	return in, nil
+}
+
+func decodeHTTPUpdateTextureRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+	var t Service.Texture
+	id := vars["id"]
+	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
+		return nil, err
+	}
+	in := Service.Texture{
+		Id:       id,
+		Name:     t.Name,
+		ClientId: t.ClientId,
+	}
+	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", in))
+	return in, nil
+}
+
+func decodeHTTPUpdateProcessRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+	var t Service.Process
+	id := vars["id"]
+	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
+		return nil, err
+	}
+	in := Service.Process{
+		Id:       id,
+		Name:     t.Name,
+		ClientId: t.ClientId,
+	}
+	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", in))
+	return in, nil
+}
+
+func decodeHTTPUpdatePurchaseStatusRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+	var t Service.PurchaseStatus
+	id := vars["id"]
+	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
+		return nil, err
+	}
+	in := Service.PurchaseStatus{
+		Id:       id,
+		Name:     t.Name,
+		ClientId: t.ClientId,
 	}
 	utils.GetLogger().Debug(fmt.Sprint(ctx.Value(Service.ContextReqUUid)), zap.Any(" 开始解析请求数据", in))
 	return in, nil
@@ -380,7 +452,9 @@ func encodeHTTPGenericResponse(ctx context.Context, w http.ResponseWriter, respo
 		encodeError(ctx, f.Failed(), w)
 		return nil
 	}
-
+	//f, _ := response.(endpoint.Failer)
+	//fmt.Sprintf("f.failed() %x ", msg.Failed())
+	//w.WriteHeader(codeFrom(f.Failed()))
 	w.Header().Set("Content-Type", "application/json")
 	//w.Header().Set("Access-Control-Allow-Origin", "*")
 	return json.NewEncoder(w).Encode(response)
@@ -394,9 +468,9 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(codeFrom(err))
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status": false,
-		"res":    "",
-		"msg":    err.Error(),
+		"status":   false,
+		"res":      "",
+		"err_info": err.Error(),
 	})
 }
 
@@ -406,7 +480,7 @@ func codeFrom(err error) int {
 		return http.StatusOK
 	case Service.ErrNotFound.Error():
 		return http.StatusOK
-	case Service.ErrAlreadyExists.Error(), Service.ErrInconsistentIDs.Error():
+	case Service.ErrAlreadyExists.Error(), Service.ErrInconsistentIDs.Error(), Service.NoParameters.Error():
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError

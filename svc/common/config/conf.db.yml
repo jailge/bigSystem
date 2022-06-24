@@ -12,10 +12,10 @@ dbserver:
   schema: mdm
 
 redisserver:
-  host: 127.0.0.1
+  host: 10.10.6.70
   port: 6379
-  password:
-  db: 1
+  password: redis
+  db: 2
 
 mongodb:
   host: 10.10.6.90

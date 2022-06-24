@@ -26,7 +26,7 @@ type Mgo struct {
 // NewMgo 创建一个新的Mgo
 func NewMgo(collectionName string) *Mgo {
 	mgo := new(Mgo)
-	fmt.Println(MgoDbName)
+	//fmt.Println(MgoDbName)
 	mgo.collection = MgoClient.Database(MgoDbName).Collection(collectionName)
 	return mgo
 }
@@ -59,6 +59,15 @@ func (m *Mgo) FindOne(key string, value interface{}) *mongo.SingleResult {
 		fmt.Println(singleResult)
 	}
 	return singleResult
+}
+
+func (m *Mgo) Find(value interface{}) *mongo.Cursor {
+	cur, err := m.collection.Find(context.TODO(), value)
+	if err != nil {
+		//fmt.Println(err)
+		utils.GetLogger().Error("Find error", zap.Error(err))
+	}
+	return cur
 }
 
 // Count 查询count总数

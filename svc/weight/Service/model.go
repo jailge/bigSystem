@@ -104,19 +104,27 @@ type WeightMaterialCodeAck struct {
 }
 
 type Craft struct {
-	Name string `json:"name"`
+	Id       string `json:"id"`
+	ClientId string `json:"client_id"`
+	Name     string `json:"name"`
 }
 
 type Texture struct {
-	Name string `json:"name"`
+	Id       string `json:"id"`
+	ClientId string `json:"client_id"`
+	Name     string `json:"name"`
 }
 
 type Process struct {
-	Name string `json:"name"`
+	Id       string `json:"id"`
+	ClientId string `json:"client_id"`
+	Name     string `json:"name"`
 }
 
 type PurchaseStatus struct {
-	Name string `json:"name"`
+	Id       string `json:"id"`
+	ClientId string `json:"client_id"`
+	Name     string `json:"name"`
 }
 
 type CraftId struct {

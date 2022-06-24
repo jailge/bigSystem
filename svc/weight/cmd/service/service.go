@@ -3,6 +3,7 @@ package service
 import (
 	//"bigSystem/svc/common/db"
 	"bigSystem/svc/common/db/mongodb"
+	"bigSystem/svc/common/db/redisdb"
 	"bigSystem/svc/common/utils"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
@@ -70,6 +71,7 @@ func Run() {
 	uberLimit := ratelimit.New(1)
 
 	mongodb.Init("./svc/common/config/conf.db.yml")
+	redisdb.Init("./svc/common/config/conf.db.yml")
 
 	var svc Service.Service
 	//svc = Service.NewService(&mongodb.MdbService{}, utils.GetLogger())
